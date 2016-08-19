@@ -37,13 +37,24 @@ def split_class_list(class_list):
     return classes
 
 
+
+class ParseException(Exception):
+    """ Exception raised when parsing a file as HTML fails """
+    def __init__(self, exc):
+        self.exc = exc
+
+
 def used_html_classes(path):
     """
     Return a list of CSS classes which are referenced by "class" attributes on
     tags in an HTML file or template for an HTML file.
     """
 
-    root = html5parser.parse(path)
+    try:
+        root = html5parser.parse(path)
+    except Exception as exc:
+        raise ParseException(exc)
+
     classes = set()
     for e in root.findall('//*[@class]'):
         class_attr = e.get('class')
@@ -63,7 +74,11 @@ def main():
     classes = set()
 
     for path in args.files:
-        classes.update(used_html_classes(path))
+        try:
+            classes.update(used_html_classes(path))
+        except ParseException as exc:
+            print('Failed to parse {}: {}'.format(path, exc.exc), file=sys.stderr)
+            sys.exit(1)
 
     for cls in sorted(classes):
         print(cls)
